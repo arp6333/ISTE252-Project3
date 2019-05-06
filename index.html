@@ -1,0 +1,171 @@
+
+<!-- Ellie Parobek -->
+<!-- Project 3 -->
+<!-- Geolocation using Google Maps API and Wikipedia API to get info on selected city. -->
+<!DOCTYPE HTML>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8"/>
+    <title>Geolocation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link type="text/css" rel="stylesheet" href="css/index.css"/>
+    <script src='js/index.js'></script>
+    <!-- Materialize CSS. -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="css/materialize.css" type="text/css" rel="stylesheet" media="screen,projection">
+</head>
+<body onload="updateWiki('Rochester_New_York');">
+    <h1 class="center">Geolocation</h1>
+    <!-- Dropdown of cities to choose from. -->
+    <div class="input-field center" id="selector">
+        <select onchange="changeLocation(this); updateWiki(city);">
+            <option value="" disabled selected>Pick a City</option>
+            <option value="43.1610, -77.6109, Rochester_New_York">Rochester</option>
+            <option value="40.7128, -74.0060, New_York_City">New York City</option>
+            <option value="31.2304, 121.4737, Shanghai">Shanghai</option>
+            <option value="35.6762, 139.6503, Tokyo">Tokyo</option>
+            <option value="34.0522, -118.2437, Los_Angeles">Los Angeles</option>
+            <option value="55.7558, 37.6173, Moscow">Moscow</option>
+            <option value="19.4326, -99.1332, Mexico_City">Mexico City</option>
+        </select>
+    </div>
+    <div class="card center" id="map-canvas"><h3>Loading map. Please wait...</h3></div>
+    <!-- Google Maps Script. -->
+    <script>
+        var map;
+        var marker;
+        var city;
+        var coordinates;
+
+        /**
+         * Initialize map.
+         */
+        function initMap(){
+            navigator.geolocation.getCurrentPosition(onSuccess, onError, { 
+                maximumAge: 300000, 
+                timeout: 10000, 
+                enableHighAccuracy: true
+            });
+        }
+
+        /**
+         * Change location on map.
+         */
+        function changeLocation(selElem){
+            let coords = selElem.value.split(",");
+            let myLatlng = new google.maps.LatLng(coords[0], coords[1]);
+            let mapOptions = { 
+                zoom: 7, 
+                center: myLatlng, 
+                mapTypeId: google.maps.MapTypeId.HYBRID 
+            };
+            if(!map){
+                map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+                marker = new google.maps.Marker({ 
+                    position: myLatlng, 
+                    map: map
+                });
+                return;
+            }
+            marker.setPosition(myLatlng);
+            map.panTo(myLatlng);
+            map.setZoom(10);
+            city = coords[2];
+        }
+
+        /**
+         * Map loads successfully, set map.
+         */
+        function onSuccess(position){
+            if(position.coords){
+                let lat = position.coords.latitude;
+                let lng = position.coords.longitude;
+                let myLatlng = new google.maps.LatLng(lat, lng);
+                let mapOptions = { 
+                    zoom: 7, 
+                    center: myLatlng, 
+                    mapTypeId: google.maps.MapTypeId.HYBRID 
+                };
+                map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+                marker = new google.maps.Marker({ 
+                    position: myLatlng, 
+                    map: map 
+                });
+            }
+        }
+
+        /**
+         * Map loads uncessfully, report error.
+         */
+        function onError(error){
+            alert('Error: ' + error.code + ' - ' + error.message + '\n');
+        } 
+    </script>
+    <script src="https://maps.google.com/maps/api/js?key=AIzaSyCS7FiY1xS-w6xk4KVzXq7YNwZxXtHZs6A&callback=initMap"></script>
+    
+    <!-- Information section. -->
+    <div onclick="updateInfo();" id="information" class="card center"> 
+        <!-- Refresh Button. -->
+        <i class="material-icons left" onclick="updateInfo();" alt="Refresh Button">refresh</i>
+        <h2 id="title" class="card-title"></h2> 
+        <div class="card-content">
+            <p id="info">Click to load / refresh info.</p>
+            <br/>
+            <p id="pageViews"></p>
+        </div>
+    </div>
+
+    <!-- Wikipedia Script. -->
+    <script>
+        // Info on given city.
+        var info;
+        // Name of given city.
+        var title;
+        // Page views of given city.
+        var pageViews;
+        // City for URL.
+        var city;
+
+        /**
+         * Load Wikipedia API based on given city.
+         */
+        function updateWiki(c){
+            city = c.trim().replace(' ', '_');
+            var url = "https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=extracts%7Cpageviews%7Cinfo&titles=" + city + "&redirects=1&exintro=1&explaintext=1&pvipmetric=pageviews&pvipdays=1&inprop=";
+            var xhttp = new XMLHttpRequest();
+            // Get info.
+            xhttp.onreadystatechange = function(){
+                if(this.readyState == 4 && this.status == 200){
+                    var response =  JSON.parse(this.responseText)['query']['pages'];
+                    var keys = Object.keys(response);
+                    var key = keys[0];
+                    // Get the array of info.
+                    var page = response[key];
+                    // Get all specific info to display from array.
+                    info = page['extract'];
+                    title = page['title'];
+                    var date = Object.keys(page['pageviews']);
+                    pageViews = page['pageviews'][date] + " page views today.";
+                }
+            };
+            xhttp.open("GET", url, true);
+            xhttp.send();
+        }
+
+        /**
+         * Update the information display.
+         */
+        function updateInfo(){
+            document.getElementById("title").innerHTML = title;
+            document.getElementById("info").innerHTML = info;
+            document.getElementById("pageViews").innerHTML = pageViews;
+        }
+    </script>
+    
+    <!-- Materialize script. -->
+    <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src="js/materialize.js"></script>
+    <script src="js/init.js"></script>
+</body>
+
+</html>
